@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gallery Workbench</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<style>
+:root{--bg:#4d5e67;--card:#5a6c75;--deep:#3f4f57;--line:#7f929b;--ink:#f6fafb;--mute:#d0dce1;--field:#e9f0f2;--fi:#17252b;--acc:#f4b942;--ai:#2a1e00;--ok:#a6ecbf;--bad:#ffb9ad;--mono:"IBM Plex Mono",ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}html{color-scheme:normal}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 "Schibsted Grotesk",system-ui,sans-serif}
+code,pre,.mono{font-family:var(--mono)}
+header{position:sticky;top:0;z-index:20;background:var(--deep);border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:12px;align-items:center;padding:10px 20px}
+h1{font-size:19px;margin:0 8px 0 0;font-weight:700}
+.tabs{display:flex;gap:4px;background:var(--bg);padding:4px;border-radius:12px}
+.tabs button{border:0;background:none;color:var(--mute);font:600 14px inherit;font-family:inherit;padding:8px 18px;border-radius:9px;cursor:pointer}
+.tabs button.on{background:var(--acc);color:var(--ai)}
+.sp{flex:1}
+button,select,input,textarea{font-family:inherit}
+.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 13px inherit;font-family:inherit;padding:8px 14px;border-radius:9px;cursor:pointer}
+.btn:hover{background:#6a7d87}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.p{background:var(--acc);color:var(--ai);border-color:var(--acc)}.btn.p:hover{background:#ffcb61}
+.btn.d:hover{background:#8c5a55}
+.btn.s{padding:4px 9px;font-size:12px}
+:focus-visible{outline:3px solid #fff;outline-offset:2px}
+main{max-width:1500px;margin:0 auto;padding:20px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.stick{position:sticky;top:78px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+.card h2{font-size:16px;margin:0 0 4px}.card .sub{color:var(--mute);font-size:13px;margin:0 0 12px}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+label.l{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input[type=text],input[type=number],input[type=date],select,textarea{width:100%;background:var(--field);color:var(--fi);border:2px solid transparent;border-radius:9px;padding:8px 10px;font-size:14px}
+textarea,input.m{font-family:var(--mono);font-size:13px}
+input:focus,select:focus,textarea:focus{border-color:var(--acc);outline:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{display:inline-flex;align-items:center;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--deep);cursor:pointer;font-size:13px;user-select:none}
+.chip input{position:absolute;opacity:0;pointer-events:none}
+.chip:has(input:checked){background:var(--acc);color:var(--ai);border-color:var(--acc);font-weight:600}
+.chip:has(input:focus-visible){outline:3px solid #fff}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 12px}
+.seg button{background:var(--deep);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 6px;cursor:pointer;font:600 13px inherit;font-family:inherit}
+.seg button.on{background:var(--acc);color:var(--ai);border-color:var(--acc)}
+.seg small{display:block;font-weight:400;font-size:11px;opacity:.85}
+.ck{display:flex;gap:9px;align-items:flex-start;font-size:14px;margin:9px 0;cursor:pointer}
+.ck input{margin-top:3px;accent-color:var(--acc);width:16px;height:16px}
+input[type=range]{width:100%;accent-color:var(--acc)}
+.sl{display:flex;justify-content:space-between;font-size:13px}.sl b{color:var(--acc);font-family:var(--mono)}
+pre{background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:12px;margin:0;font-size:12.5px;white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto;color:#fff}
+.out{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.rtabs{display:flex;gap:2px;margin:-4px 0 12px;border-bottom:1px solid var(--line)}
+.rtabs button{background:none;border:0;border-bottom:3px solid transparent;color:var(--mute);font:600 14px inherit;font-family:inherit;padding:8px 12px;cursor:pointer}
+.rtabs button.on{color:var(--acc);border-color:var(--acc)}
+.pane{display:none}.pane.on{display:block}
+.pill{font-size:12px;padding:6px 11px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;display:inline-flex;gap:7px;align-items:center}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--acc)}.dot.ok{background:var(--ok)}
+#con{background:var(--deep);border:1px solid var(--line);border-radius:10px;padding:10px;height:260px;overflow:auto;font:12.5px/1.5 var(--mono)}
+.sum{margin:12px 0 0;padding:0;list-style:none;font-size:13px;color:var(--mute)}.sum b{color:var(--ink)}
+.drop{border:2px dashed var(--line);border-radius:12px;padding:18px;text-align:center;background:var(--deep);cursor:pointer}
+.drop.act{border-color:var(--acc);background:#566870}
+.drop p{margin:0 0 4px}.drop small{color:var(--mute)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.stat span{font-size:12px;color:var(--mute)}.stat b{display:block;font-size:22px;font-family:var(--mono)}.stat b.sm{font-size:15px;padding-top:6px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.prog{height:10px;background:var(--deep);border-radius:9px;overflow:hidden;margin-top:8px}.prog i{display:block;height:100%;width:0;background:var(--acc);transition:width .15s}
+.tw{overflow:auto;max-height:560px;border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{position:sticky;top:0;background:var(--deep);text-align:left;padding:9px 10px;font-weight:600;white-space:nowrap}
+td{padding:7px 10px;border-top:1px solid #6d808a;vertical-align:middle}
+.th{width:36px;height:36px;border-radius:7px;background:var(--deep);object-fit:cover;display:inline-flex;align-items:center;justify-content:center;font:10px var(--mono);vertical-align:middle;margin-right:9px}
+.tag{font:12px var(--mono);padding:2px 8px;border-radius:6px;background:var(--deep)}.tag.cv{background:var(--acc);color:var(--ai)}
+.nn{color:var(--ok);font-family:var(--mono);word-break:break-all}
+.empty{padding:50px 16px;text-align:center;color:var(--mute)}
+.err{background:#8c5a55;border-radius:9px;padding:8px 10px;font-size:13px;margin-top:8px}
+.hide{display:none!important}
+.tok{font:12px var(--mono);padding:3px 8px;border-radius:7px;background:var(--deep);color:#fff;border:1px solid var(--line);cursor:pointer}.tok:hover{background:#2f3d44}
+#toast{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--deep);border:1px solid var(--acc);border-left-width:6px;padding:11px 16px;border-radius:10px;max-width:420px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none}
+#toast.on{opacity:1;transform:none}
+.modal{position:fixed;inset:0;background:rgba(30,40,46,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px}
+.modal>div{background:var(--card);border:1px solid var(--line);border-radius:16px;max-width:760px;width:100%;max-height:90vh;overflow:auto;padding:20px}
+@media(max-width:980px){main{grid-template-columns:1fr}.stick{position:static}.seg{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style></head><body>
+<header>
+ <h1>Gallery Workbench</h1>
+ <div class="tabs" role="tablist"><button class="on" data-v="dl">Download</button><button data-v="rn">Rename &amp; convert</button></div>
+ <span class="sp"></span>
+ <button class="pill" id="bridgeBtn" title="Test connection to 127.0.0.1:8765"><span class="dot" id="bdot"></span><span id="btxt">Runner: not connected</span></button>
+ <button class="btn" id="guideBtn">Get runner script</button>
+</header>
+<div id="toast" role="status"></div>
+
+<main id="v-dl">
+ <div class="col">
+  <section class="card">
+   <div class="hd"><div><h2>Who to download</h2><p class="sub">Instagram usernames, @handles or any full URL, one per line.</p></div>
+    <div class="chips"><button class="btn s" id="sample">Load sample</button><button class="btn s d" id="clr">Clear</button></div></div>
+   <textarea id="targets" data-s rows="4" placeholder="pprinfb&#10;https://www.instagram.com/divyadayanand__/">pprinfb</textarea>
+   <label class="l">What to grab from each profile (leave all off for the bare profile URL)</label>
+   <div class="chips" id="eps"></div>
+  </section>
+  <section class="card">
+   <div class="hd"><div><h2>File types and limits</h2><p class="sub">Pick a preset or choose extensions yourself.</p></div><span class="tag" id="fbadge"></span></div>
+   <div class="seg" id="fseg">
+    <button data-p="images">Images<small>JPG PNG WebP HEIC</small></button><button data-p="videos">Videos<small>MP4 MOV</small></button>
+    <button data-p="all">Everything<small>no filter</small></button><button data-p="custom">Custom<small>your pick</small></button></div>
+   <div class="chips" id="exts"></div>
+   <div class="g3" style="margin-top:6px">
+    <div><label class="l">Max posts</label><input type="number" id="maxp" data-s min="0" placeholder="blank = all"></div>
+    <div><label class="l">Newer than</label><input type="date" id="fdate" data-s></div>
+    <div><label class="l">&nbsp;</label><label class="ck" style="margin:6px 0"><input type="checkbox" id="arch" data-s><span>Skip already downloaded</span></label></div>
+   </div>
+  </section>
+  <section class="card">
+   <h2>Login</h2><p class="sub">Reuse your browser's session so private or rate-limited pages work. Close the browser first if the cookie database is locked.</p>
+   <div class="g2"><div><label class="l">Cookie source</label><select id="auth" data-s>
+    <option value="config_default">Use config.json (short command)</option><option value="chrome_flatpak" selected>Chrome (Flatpak)</option><option value="chromium_flatpak">Chromium (Flatpak)</option><option value="brave_flatpak">Brave (Flatpak)</option><option value="firefox_flatpak">Firefox (Flatpak)</option><option value="chrome_native">Chrome (native)</option><option value="firefox_native">Firefox (native)</option><option value="cookies_txt">cookies.txt file</option></select></div>
+    <div><label class="l">Profile or file path</label><input type="text" class="m" id="apath" data-s value="/home/heimdall/.var/app/com.google.Chrome/config/google-chrome"></div></div>
+   <label class="ck"><input type="checkbox" id="clic" data-s><span>Also put the cookie flag in the command itself</span></label>
+  </section>
+  <section class="card">
+   <h2>Safety and output</h2><p class="sub">Slower is safer for your account.</p>
+   <div class="g2"><div><div class="sl"><span>Wait between page requests</span><b id="s1v"></b></div><input type="range" id="s1" data-s min="0" max="10" step=".5" value="2.5"></div>
+    <div><div class="sl"><span>Wait between downloads</span><b id="s2v"></b></div><input type="range" id="s2" data-s min="0" max="10" step=".5" value="1.5"></div></div>
+   <div class="g2"><div><label class="l">Save to folder</label><input type="text" class="m" id="dest" data-s placeholder="default: ./gallery-dl"></div>
+    <div><label class="l">Filename pattern</label><input type="text" class="m" id="fname" data-s placeholder="{username}_{post_shortcode}_{num}.{extension}"></div></div>
+   <div class="chips" style="margin-top:12px" id="flags"></div>
+  </section>
+ </div>
+ <div class="col stick"><section class="card">
+  <div class="hd" style="margin-bottom:10px"><div><h2>Saved setups</h2></div>
+   <div class="chips"><select id="pset" style="width:170px"><option value="">Last used</option></select><button class="btn s" id="psave">Save</button><button class="btn s d" id="pdel">Delete</button></div></div>
+  <div class="rtabs"><button class="on" data-r="cli">Command</button><button data-r="cfg">config.json</button><button data-r="run">Run here</button></div>
+  <div class="pane on" id="r-cli">
+   <p class="sub"><span id="ucount"></span> — paste into any terminal.</p>
+   <pre id="cli" style="min-height:130px"></pre>
+   <div class="out"><button class="btn p" data-copy="cli">Copy command</button><button class="btn" id="dlsh">Download .sh</button></div>
+   <ul class="sum" id="sum"></ul>
+  </div>
+  <div class="pane" id="r-cfg">
+   <p class="sub">Save once as <code>~/.config/gallery-dl/config.json</code>, then run <code>gallery-dl "URL"</code>.</p>
+   <pre id="cfg" style="min-height:200px"></pre>
+   <div class="out"><button class="btn p" data-copy="cfg">Copy JSON</button><button class="btn" id="dlcfg">Download config.json</button><button class="btn" data-copy="inst">Copy install command</button></div>
+   <pre id="inst" class="hide"></pre>
+  </div>
+  <div class="pane" id="r-run">
+   <p class="sub">Streams live output from the runner script on your computer.</p>
+   <div class="out" style="margin:0 0 10px"><button class="btn p" id="go" style="flex:1">Run gallery-dl now</button><button class="btn d" id="stop" disabled>Stop</button><button class="btn" id="cc">Clear</button></div>
+   <div id="con"><div>Runner not started yet. Use "Get runner script" at the top.</div></div>
+  </div>
+ </section></div>
+</main>
+
+<main id="v-rn" class="hide">
+ <div class="col">
+  <section class="card">
+   <div class="hd"><div><h2>Images</h2><p class="sub">Drop a folder or pick files.</p></div><span class="tag" id="mode">Nothing loaded</span></div>
+   <div class="drop" id="drop"><p><b>Drop images or a folder here</b></p><small>JPG PNG WebP HEIC AVIF GIF BMP SVG TIFF</small>
+    <div class="out" style="justify-content:center" id="dbtns">
+     <button class="btn p" id="bdisk">Open folder (edit in place)</button><button class="btn" id="bfolder">Folder → ZIP</button><button class="btn" id="bfiles">Files → ZIP</button></div></div>
+   <input id="inF" type="file" webkitdirectory multiple class="hide"><input id="inI" type="file" multiple accept="image/*,.heic,.heif,.avif,.tiff,.tif" class="hide">
+   <div id="diskOpt" class="hide" style="margin-top:12px"><b>Connected: <span id="dname" class="mono"></span></b>
+    <label class="ck"><input type="radio" name="wt" value="in" checked><span>Write into the folder</span></label>
+    <label class="ck"><input type="radio" name="wt" value="sub"><span>Write into <code>_renamed_jpg/</code> and keep originals</span></label>
+    <label class="ck" id="delW"><input type="checkbox" id="delO" checked><span>Delete the old file after the new one is saved</span></label></div>
+  </section>
+  <section class="card">
+   <div class="hd"><div><h2>Dates and order</h2><p class="sub">Each file gets a random date, assigned in order.</p></div><button class="btn s" id="reroll">Re-roll dates &amp; names</button></div>
+   <div class="g2"><div><label class="l">Earliest</label><input type="date" id="d1"></div><div><label class="l">Latest</label><input type="date" id="d2"></div></div>
+   <div class="chips" style="margin-top:10px"><button class="btn s" data-rg="ytd">This year</button><button class="btn s" data-rg="30">30 days</button><button class="btn s" data-rg="90">90 days</button><button class="btn s" data-rg="ly">Last year</button></div>
+   <div id="derr" class="err hide">Earliest date is after the latest date.</div>
+   <div class="g2"><div><label class="l">Order files by</label><select id="sort"><option value="num">Leading number</option><option value="nat">Filename A–Z</option><option value="mt">File timestamp</option><option value="rnd">Random shuffle</option></select></div>
+    <div><label class="l">Direction</label><select id="dir"><option value="f">Lowest → oldest date</option><option value="r">Highest → oldest date</option></select></div></div>
+  </section>
+  <section class="card">
+   <div class="hd"><div><h2>New filenames</h2><p class="sub">Pick a camera style, a random style, or write a pattern.</p></div></div>
+   <label class="l">Style</label><select id="cam"></select>
+   <label class="l">Pattern (no extension)</label><input type="text" class="m" id="pat" value="{PREFIX}{YYYY}_{MM}_{DD}_{ORIG}">
+   <div class="chips" style="margin-top:8px" id="toks"></div>
+   <div class="g3"><div><label class="l">{PREFIX}</label><input type="text" class="m" id="pfx" value="IMG_"></div><div><label class="l">Counter starts at</label><input type="number" id="seq" min="0" value="1"></div>
+    <div><label class="l">Extension</label><select id="ecase"><option value="l">.jpg</option><option value="u">.JPG</option></select></div></div>
+   <label class="ck"><input type="checkbox" id="strip" checked><span>Remove old date prefixes first, so re-runs don't stack them</span></label>
+   <div class="stat" style="margin-top:6px"><span>Example</span><b class="sm" id="ex" style="color:var(--ok)"></b></div>
+  </section>
+  <section class="card">
+   <h2>Convert to JPG</h2>
+   <label class="ck"><input type="checkbox" id="conv" checked><span>Convert HEIC, WebP, PNG, AVIF, BMP, GIF and SVG to JPG</span></label>
+   <div class="sl"><span>JPG quality</span><b id="qv">92%</b></div><input type="range" id="q" min="50" max="100" value="92">
+   <div class="g2"><div><label class="l">Fill transparent areas with</label><input type="color" id="matte" value="#ffffff" style="width:100%;height:38px;border-radius:9px;border:0"></div><div></div></div>
+   <label class="ck"><input type="checkbox" id="reenc"><span>Re-encode existing JPGs too (also strips camera metadata)</span></label>
+   <label class="ck"><input type="checkbox" id="mtime" checked><span>Stamp ZIP entries with the new dates</span></label>
+  </section>
+ </div>
+ <div class="col" style="min-width:0">
+  <div class="stats"><div class="stat"><span>Images</span><b id="sT">0</b><small id="sS" style="color:var(--mute)">0 MB</small></div>
+   <div class="stat"><span>Will convert</span><b id="sC">0</b><small id="sF" style="color:var(--mute)">—</small></div>
+   <div class="stat"><span>Date span</span><b class="sm" id="sD">—</b></div></div>
+  <section class="card"><div class="bar">
+   <input type="text" id="find" placeholder="Search the list…" style="flex:1;min-width:150px">
+   <button class="btn" id="csv">Export CSV</button><button class="btn d" id="clrq">Clear</button>
+   <button class="btn p hide" id="bwrite">Write to disk</button><button class="btn p" id="bzip" disabled>Convert &amp; download ZIP</button></div>
+   <div id="pp" class="hide" style="margin-top:12px"><div class="sl"><span id="pt">Working…</span><b id="pc"></b></div><div class="prog"><i id="pb"></i></div></div></section>
+  <section class="card" style="padding:0"><div class="tw"><table><thead><tr><th>#</th><th>Original</th><th>Action</th><th>New date</th><th>New name</th><th></th></tr></thead><tbody id="tb"></tbody></table>
+   <div class="empty" id="empty"><b>No images yet</b><br>Drop a folder above, or <a href="#" id="demo" style="color:var(--acc)">load a demo batch</a>.</div></div></section>
+ </div>
+</main>
+
+<div class="modal hide" id="guide"><div>
+ <div class="hd"><h2>Runner script (gdl-bridge.py)</h2><button class="btn s" id="gclose">Close</button></div>
+ <p class="sub">Browsers can't start programs, so this tiny Python file does it for you on 127.0.0.1:8765. Save it, run <code>python3 gdl-bridge.py</code>, then press "Run gallery-dl now". Keep this page open from a saved file, not a web link.</p>
+ <pre id="py" style="max-height:360px"></pre>
+ <div class="out"><button class="btn p" data-copy="py">Copy script</button><button class="btn" id="dlpy">Download gdl-bridge.py</button></div></div></div>
+
+<script type="text/plain" id="pysrc">#!/usr/bin/env python3
+import json, subprocess
+from http.server import BaseHTTPRequestHandler, HTTPServer
+proc = None
+class H(BaseHTTPRequestHandler):
+    def _c(self, code=200, ctype="application/json"):
+        self.send_response(code)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Content-Type", ctype)
+        self.end_headers()
+    def do_OPTIONS(self): self._c()
+    def do_GET(self):
+        self._c(); self.wfile.write(b'{"status":"ok"}')
+    def do_POST(self):
+        global proc
+        n = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(n).decode() or "{}")
+        if self.path == "/stop":
+            if proc and proc.poll() is None: proc.terminate()
+            self._c(); self.wfile.write(b'{"stopped":true}'); return
+        args = body.get("args", [])
+        if not args or args[0] != "gallery-dl":
+            self._c(400); return
+        self._c(200, "text/plain; charset=utf-8")
+        try:
+            proc = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            for line in proc.stdout:
+                self.wfile.write(line.encode()); self.wfile.flush()
+            proc.wait()
+            self.wfile.write(f"\n[exit] finished with code {proc.returncode}\n".encode())
+        except Exception as e:
+            self.wfile.write(f"\n[error] {e}\n".encode())
+print("Runner ready on http://127.0.0.1:8765")
+HTTPServer(("127.0.0.1", 8765), H).serve_forever()
+</script>
+
+<script>
+(()=>{'use strict';
+const g=id=>document.getElementById(id),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ls={get:k=>{try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let tt;function toast(m){const t=g('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)}
+function copy(id){const t=g(id).textContent;(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()});toast('Copied')}
+function save(name,content,mime){const u=URL.createObjectURL(new Blob([content],{type:mime||'text/plain'})),a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),4000)}
+$$('[data-copy]').forEach(b=>b.onclick=()=>copy(b.dataset.copy));
+$$('.tabs button').forEach(b=>b.onclick=()=>{$$('.tabs button').forEach(x=>x.classList.toggle('on',x===b));g('v-dl').classList.toggle('hide',b.dataset.v!=='dl');g('v-rn').classList.toggle('hide',b.dataset.v!=='rn')});
+$$('.rtabs button').forEach(b=>b.onclick=()=>{$$('.rtabs button').forEach(x=>x.classList.toggle('on',x===b));$$('.pane').forEach(p=>p.classList.toggle('on',p.id==='r-'+b.dataset.r))});
+
+/* ================= DOWNLOAD ================= */
+const IMG=['jpg','jpeg','png','webp','heic','heif','avif'],VID=['mp4','mov'],ALLX=[...IMG,...VID,'gif'];
+const AP={config_default:['chrome','/home/heimdall/.var/app/com.google.Chrome/config/google-chrome',0],chrome_flatpak:['chrome','/home/heimdall/.var/app/com.google.Chrome/config/google-chrome',0],chromium_flatpak:['chromium','/home/heimdall/.var/app/org.chromium.Chromium/config/chromium',0],brave_flatpak:['brave','/home/heimdall/.var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser',0],firefox_flatpak:['firefox','/home/heimdall/.var/app/org.mozilla.firefox/.mozilla/firefox',0],chrome_native:['chrome','',0],firefox_native:['firefox','',0],cookies_txt:['file','/home/heimdall/Downloads/cookies.txt',1]};
+const EPS=[['posts','Main feed',1],['avatar','Profile pic',1],['reels','Reels'],['stories','Stories'],['highlights','Highlights'],['tagged','Tagged']];
+const FLAGS=[['previews','Video thumbnails',1],['sim','Simulate only (-s)'],['verb','Verbose (-v)'],['meta','Save JSON metadata'],['nomt','Keep download time']];
+const chip=(id,t,on,extra)=>`<label class="chip"><input type="checkbox" id="${id}" data-s ${on?'checked':''} ${extra||''}><span>${t}</span></label>`;
+g('eps').innerHTML=EPS.map(e=>chip('ep-'+e[0],e[1],e[2])).join('');
+g('flags').innerHTML=FLAGS.map(e=>chip('f-'+e[0],e[1],e[2])).join('');
+g('exts').innerHTML=ALLX.map(x=>chip('x-'+x,'.'+x,IMG.includes(x),'class="xc" value="'+x+'"')).join('');
+let fp='images';
+const FL={images:'Images only',videos:'Videos only',all:'All media',custom:'Custom'};
+function syncFp(){$$('#fseg button').forEach(b=>b.classList.toggle('on',b.dataset.p===fp));g('fbadge').textContent=FL[fp]}
+$$('#fseg button').forEach(b=>b.onclick=()=>{fp=b.dataset.p;if(fp!=='custom')$$('.xc').forEach(c=>c.checked=fp==='all'||(fp==='images'?IMG:VID).includes(c.value));syncFp();upd()});
+$$('.xc').forEach(c=>c.addEventListener('change',()=>{fp='custom';syncFp()}));
+const v=id=>g(id).value.trim(),k=id=>g(id).checked;
+function urls(){const out=[];v('targets').split('\n').map(s=>s.trim()).filter(Boolean).forEach(l=>{
+ if(/^https?:\/\/(www\.)?instagram\.com\/(p|reel|reels|stories|tv)\//i.test(l)){out.push(l);return}
+ let u=l.replace(/^@/,'');const m=l.match(/^https?:\/\/(www\.)?instagram\.com\/([^/?#]+)\/?$/i);if(m)u=m[2];
+ if(/^https?:\/\//i.test(l)&&!m){out.push(l);return}
+ const b='https://www.instagram.com/'+u,s=EPS.filter(e=>k('ep-'+e[0])).map(e=>e[0]);
+ if(!s.length||(s.length===1&&s[0]==='posts'))out.push(b+'/');
+ else s.forEach(e=>out.push(e==='stories'?`https://www.instagram.com/stories/${u}/`:`${b}/${e}/`))});
+ return out.length?out:['https://www.instagram.com/USERNAME/']}
+function filt(){const p=[];if(fp!=='all'){const s=$$('.xc:checked').map(c=>c.value);if(s.length&&s.length<ALLX.length)p.push(s.length===1?`extension == '${s[0]}'`:`extension in (${s.map(e=>`'${e}'`).join(', ')})`)}
+ const d=v('fdate');if(d){const[y,m,dd]=d.split('-').map(Number);p.push(`date >= datetime(${y}, ${m}, ${dd})`)}return p.join(' and ')}
+function args(){const a=['gallery-dl'];if(k('f-previews'))a.push('-o','previews=true');if(k('f-sim'))a.push('-s');if(k('f-verb'))a.push('-v');if(k('f-meta'))a.push('--write-metadata');if(k('f-nomt'))a.push('--no-mtime');
+ if(v('dest'))a.push('-d',v('dest'));if(v('fname'))a.push('-o','filename='+v('fname'));if(k('arch'))a.push('--download-archive','~/.config/gallery-dl/archive.sqlite3');
+ const mp=+v('maxp');if(mp>0)a.push('--range','1-'+mp);
+ const ak=g('auth').value;if(k('clic')&&ak!=='config_default'){if(ak==='cookies_txt')a.push('--cookies',v('apath')||'~/Downloads/cookies.txt');else a.push('--cookies-from-browser',v('apath')?AP[ak][0]+':'+v('apath'):AP[ak][0])}
+ const f=filt();if(f)a.push('--filter',f);return a.concat(urls())}
+const fmt=a=>a.map(x=>/[ ()'"]|https:\/\//.test(x)?`"${x}"`:x).join(' ');
+function cfgObj(){const ak=g('auth').value,ap=v('apath'),b={cookies:ak==='cookies_txt'?(ap||'/home/heimdall/Downloads/cookies.txt'):(ap?[AP[ak][0],ap]:[AP[ak][0]]),previews:k('f-previews'),'sleep-request':+g('s1').value,sleep:+g('s2').value};
+ const f=filt();if(f)b.filter=f;if(k('arch'))b.archive='~/.config/gallery-dl/archive.sqlite3';const o={extractor:{instagram:b}};if(v('dest'))o.extractor['base-directory']=v('dest');return o}
+const DLS=()=>$$('[data-s]');
+function snap(){const o={_fp:fp};DLS().forEach(e=>o[e.id]=e.type==='checkbox'?e.checked:e.value);return o}
+function applySnap(o){DLS().forEach(e=>{if(e.id in o){if(e.type==='checkbox')e.checked=o[e.id];else e.value=o[e.id]}});fp=o._fp||'custom';syncFp();upd(true)}
+function upd(noSave){g('s1v').textContent=g('s1').value+'s';g('s2v').textContent=g('s2').value+'s';
+ const a=args(),u=urls();g('cli').textContent=fmt(a);g('ucount').textContent=u.length+' link'+(u.length>1?'s':'');
+ const c=JSON.stringify(cfgObj(),null,4);g('cfg').textContent=c;g('inst').textContent=`mkdir -p ~/.config/gallery-dl && cat << 'EOF' > ~/.config/gallery-dl/config.json\n${c}\nEOF`;
+ const f=filt(),sel=g('auth');
+ g('sum').innerHTML=`<li>Login: <b>${esc(sel.options[sel.selectedIndex].text)}</b></li><li>Filter: <b>${esc(f||'none, all media')}</b></li><li>Pauses: <b>${g('s1').value}s per page, ${g('s2').value}s per file</b></li>`;
+ if(noSave!==true)ls.set('gdlw.last',snap())}
+g('auth').onchange=()=>{const p=AP[g('auth').value];g('apath').value=p[1];g('clic').checked=!!p[2];upd()};
+DLS().forEach(e=>{e.addEventListener('input',()=>upd());e.addEventListener('change',()=>upd())});
+g('sample').onclick=()=>{g('targets').value='pprinfb\ndivyadayanand__';upd()};g('clr').onclick=()=>{g('targets').value='';upd()};
+g('dlsh').onclick=()=>{save('run-gallery-dl.sh',`#!/usr/bin/env bash\nset -e\n${fmt(args())}\n`,'text/x-shellscript')};
+g('dlcfg').onclick=()=>save('config.json',g('cfg').textContent,'application/json');
+/* saved setups */
+function listP(){const p=ls.get('gdlw.presets')||{};g('pset').innerHTML='<option value="">Last used</option>'+Object.keys(p).map(n=>`<option>${esc(n)}</option>`).join('')}
+g('psave').onclick=()=>{const n=(prompt('Name this setup')||'').trim();if(!n)return;const p=ls.get('gdlw.presets')||{};p[n]=snap();ls.set('gdlw.presets',p);listP();g('pset').value=n;toast('Saved "'+n+'"')};
+g('pdel').onclick=()=>{const n=g('pset').value,p=ls.get('gdlw.presets')||{};if(n&&p[n]){delete p[n];ls.set('gdlw.presets',p);listP();toast('Deleted')}};
+g('pset').onchange=()=>{const n=g('pset').value,p=ls.get('gdlw.presets')||{};if(n&&p[n]){applySnap(p[n]);toast('Loaded "'+n+'"')}};
+/* runner */
+async function ping(n){try{const r=await fetch('http://127.0.0.1:8765/ping');if(r.ok){g('bdot').className='dot ok';g('btxt').textContent='Runner: connected';if(n)toast('Runner connected');return true}}catch(e){}
+ g('bdot').className='dot';g('btxt').textContent='Runner: not connected';if(n)toast('Runner not found on port 8765');return false}
+g('bridgeBtn').onclick=()=>ping(true);
+const line=(t,c)=>{const d=document.createElement('div');d.style.cssText='white-space:pre-wrap;word-break:break-all;color:'+(c||'#fff');d.textContent=t;g('con').appendChild(d);g('con').scrollTop=1e9};
+g('cc').onclick=()=>g('con').innerHTML='';
+g('go').onclick=async()=>{if(!await ping()){line('Runner not reachable on 127.0.0.1:8765.','var(--acc)');g('guide').classList.remove('hide');return}
+ const a=args();g('go').disabled=true;g('stop').disabled=false;line('$ '+fmt(a),'var(--acc)');
+ try{const r=await fetch('http://127.0.0.1:8765/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({args:a})});const rd=r.body.getReader(),dc=new TextDecoder();
+  for(;;){const{value,done}=await rd.read();if(done)break;dc.decode(value,{stream:true}).split('\n').filter(Boolean).forEach(l=>line(l,/\[error\]/.test(l)?'var(--bad)':/warning/i.test(l)?'var(--acc)':/\[exit\]/.test(l)?'var(--ok)':'#fff'))}}
+ catch(e){line('[error] '+e.message,'var(--bad)')}g('go').disabled=false;g('stop').disabled=true};
+g('stop').onclick=async()=>{try{await fetch('http://127.0.0.1:8765/stop',{method:'POST'});line('[stopped]','var(--bad)')}catch(e){}};
+g('guideBtn').onclick=()=>g('guide').classList.remove('hide');g('gclose').onclick=()=>g('guide').classList.add('hide');
+g('py').textContent=g('pysrc').textContent;g('dlpy').onclick=()=>save('gdl-bridge.py',g('py').textContent,'text/x-python');
+
+/* ================= RENAME ================= */
+const SUP=new Set(['jpg','jpeg','png','webp','gif','bmp','avif','heic','heif','svg','tiff','tif','ico']);
+const CAM=[['orig','Date + original number: IMG_2026_11_02_223','{PREFIX}{YYYY}_{MM}_{DD}_{ORIG}','IMG_','l'],['android','Android: IMG_20261102_142805','IMG_{YYYY}{MM}{DD}_{HH}{mm}{ss}','IMG_','l'],['pixel','Google Pixel: PXL_20261102_142805419','PXL_{YYYY}{MM}{DD}_{HH}{mm}{ss}{ms}','PXL_','l'],['samsung','Samsung: 20261102_142805','{YYYY}{MM}{DD}_{HH}{mm}{ss}','','l'],['iph','iPhone + date: IMG_2026_11_02_0001','IMG_{YYYY}_{MM}_{DD}_{SEQ4}','IMG_','l'],['ip','iPhone / Canon: IMG_0223','IMG_{SEQ4}','IMG_','u'],['sony','Sony: DSC00223','DSC{SEQ5}','DSC','u'],['nikon','Nikon: DSC_0223','DSC_{SEQ4}','DSC_','u'],['fuji','Fujifilm: DSCF0223','DSCF{SEQ4}','DSCF','u'],['lumix','Lumix: P1000223','P100{SEQ4}','P100','u'],['wa','WhatsApp: IMG-20261102-WA0001','IMG-{YYYY}{MM}{DD}-WA{SEQ4}','IMG-','l'],['rhex','Random: 8 hex characters','{RAND8}','','l'],['rimg','Random: IMG_ + 6 characters','{PREFIX}{RAND6}','IMG_','u'],['rdate','Random: date + random tail','{PREFIX}{YYYY}{MM}{DD}_{RAND5}','IMG_','l'],['custom','Custom pattern…','','','']];
+g('cam').innerHTML=CAM.map(c=>`<option value="${c[0]}">${c[1]}</option>`).join('');
+g('toks').innerHTML=['PREFIX','YYYY','MM','DD','HH','mm','ss','ms','ORIG','NUM','SEQ4','SEQ5','RAND4','RAND8'].map(t=>`<button type="button" class="tok" data-t="{${t}}">{${t}}</button>`).join('');
+let Q=[],P=[],EP=[],DIR=null;
+const hex=n=>[...crypto.getRandomValues(new Uint8Array(n))].map(b=>(b%16).toString(16)).join('');
+function stripPre(s){if(!g('strip').checked)return s;const cp=g('pfx').value.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+ const R=[new RegExp(`^(?:(?:${cp}|IMG_|PXL_|DSC_|DSCF)?\\d{4}_\\d{2}_\\d{2}_(?:\\d+_)?)+`,'i'),/^(?:(?:IMG_|PXL_|VID_)?\d{8}_\d{6,9}_)+/i,/^(?:IMG-\d{8}-WA\d+_)+/i];
+ let c=1;while(c){c=0;for(const r of R){const m=s.match(r);if(m&&m[0].length<s.length){s=s.slice(m[0].length);c=1}}}return s}
+function lead(s){const t=stripPre(s),m=t.match(/^(\d+)/)||t.match(/(\d+)/);return m?parseInt(m[1],10):0}
+function dates(n){const a=Date.parse(g('d1').value+'T00:00:00'),b=Date.parse(g('d2').value+'T23:59:59');
+ if(isNaN(a)||isNaN(b)||a>b){g('derr').classList.remove('hide');return[]}g('derr').classList.add('hide');
+ const days=Math.floor((b-a)/864e5),e=[];for(let i=0;i<n;i++)e.push(a+Math.floor(Math.random()*(days+1))*864e5+27e6+Math.floor(Math.random()*51.3e6));return e.sort((x,y)=>x-y)}
+const T2=d=>({YYYY:''+d.getFullYear(),MM:String(d.getMonth()+1).padStart(2,'0'),DD:String(d.getDate()).padStart(2,'0'),HH:String(d.getHours()).padStart(2,'0'),mm:String(d.getMinutes()).padStart(2,'0'),ss:String(d.getSeconds()).padStart(2,'0'),ms:String(d.getMilliseconds()).padStart(3,'0')});
+const tpl=(p,t,r)=>p.replace(/\{(\w+)\}/g,(m,n)=>/^RAND\d+$/.test(n)?r.slice(0,+n.slice(4)):(n in t?t[n]:m));
+const sq=()=>Math.max(0,parseInt(g('seq').value,10)||1);
+function sample(){const t={PREFIX:g('pfx').value,...T2(new Date(EP[0]||Date.now())),ORIG:'223',NUM:'223',SEQ4:String(sq()).padStart(4,'0'),SEQ5:String(sq()).padStart(5,'0')};
+ g('ex').textContent=tpl(g('pat').value||'{ORIG}',t,hex(16))+(g('ecase').value==='u'?'.JPG':'.jpg')}
+function plan(roll){sample();if(!Q.length){P=[];stats();draw();return}
+ if(roll||EP.length!==Q.length)EP=dates(Q.length);if(!EP.length)return;
+ const D=Q.map(q=>{const i=q.name.lastIndexOf('.'),raw=i>0?q.name.slice(0,i):q.name;return{...q,raw,base:stripPre(raw),ln:lead(raw)}});
+ const s=g('sort').value,cmp=(a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'});
+ D.sort((a,b)=>s==='num'?(a.ln-b.ln||cmp(a,b)):s==='nat'?cmp(a,b):s==='mt'?(a.mt||0)-(b.mt||0):a.ok-b.ok);if(g('dir').value==='r')D.reverse();
+ const used=new Set(),cv=g('conv').checked,fr=g('reenc').checked,up=g('ecase').value==='u',pat=g('pat').value.trim()||'{ORIG}';
+ P=D.map((q,i)=>{const ep=EP[i],t=T2(new Date(ep)),sj=q.ext==='jpg'||q.ext==='jpeg',will=(!sj&&cv)||(sj&&fr),fe=(sj||cv)?(up?'JPG':'jpg'):(up?q.ext.toUpperCase():q.ext);
+  const stem=tpl(pat,{PREFIX:g('pfx').value,...t,ORIG:q.base,NUM:''+q.ln,SEQ4:String(sq()+i).padStart(4,'0'),SEQ5:String(sq()+i).padStart(5,'0')},q.rnd).replace(/[<>:"/\\|?*]+/g,'_');
+  let n=`${stem}.${fe}`;if(used.has(n.toLowerCase())){let c=1;while(used.has(`${stem}_${c}.${fe}`.toLowerCase()))c++;n=`${stem}_${c}.${fe}`}used.add(n.toLowerCase());
+  return{...q,i:i+1,ep,dd:`${t.YYYY}-${t.MM}-${t.DD} ${t.HH}:${t.mm}:${t.ss}`,sj,will,nn:n}});stats();draw()}
+function stats(){g('sT').textContent=P.length;g('sS').textContent=(P.reduce((a,r)=>a+r.size,0)/1048576).toFixed(2)+' MB';const c=P.filter(r=>r.will);g('sC').textContent=c.length;
+ const f=[...new Set(P.filter(r=>!r.sj).map(r=>r.ext.toUpperCase()))];g('sF').textContent=f.length?f.join(', '):'all already JPG';
+ g('sD').textContent=P.length&&EP.length?new Date(EP[0]).toISOString().slice(0,10)+' → '+new Date(EP[EP.length-1]).toISOString().slice(0,10):'—';g('bzip').disabled=!P.length}
+function draw(){const f=g('find').value.trim().toLowerCase(),r=f?P.filter(x=>x.name.toLowerCase().includes(f)||x.nn.toLowerCase().includes(f)||x.ext.includes(f)):P;
+ g('empty').classList.toggle('hide',r.length>0);g('tb').innerHTML=r.slice(0,300).map(x=>`<tr><td class="mono">${x.i}</td><td>${x.thumb?`<img class="th" src="${x.thumb}" alt="" loading="lazy">`:`<span class="th">${esc(x.ext)}</span>`}${esc(x.name)}</td><td><span class="tag ${x.will?'cv':''}">${x.will?(x.sj?'re-encode':x.ext+' → jpg'):(x.sj?'rename only':'keep '+x.ext)}</span></td><td class="mono" style="white-space:nowrap">${x.dd}</td><td class="nn">${esc(x.nn)}</td><td><button class="btn s" data-id="${x.id}">Save</button></td></tr>`).join('')}
+async function blobOf(r){const q=Math.min(1,Math.max(.1,g('q').value/100));if(r.sj&&!r.will)return r.file.slice(0,r.file.size,'image/jpeg');if(!r.will)return r.file;
+ if(r.ext==='heic'||r.ext==='heif'){if(!window.heic2any)throw new Error('HEIC converter not loaded (check internet)');const o=await heic2any({blob:r.file,toType:'image/jpeg',quality:q});return Array.isArray(o)?o[0]:o}
+ return new Promise((ok,no)=>{const u=URL.createObjectURL(r.file),im=new Image();im.onload=()=>{try{const w=im.naturalWidth||800,h=im.naturalHeight||600,c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle=g('matte').value;x.fillRect(0,0,w,h);x.drawImage(im,0,0,w,h);c.toBlob(b=>{URL.revokeObjectURL(u);b?ok(b):no(new Error('Could not encode '+r.name))},'image/jpeg',q)}catch(e){no(e)}};im.onerror=()=>{URL.revokeObjectURL(u);no(new Error('Could not decode '+r.name))};im.src=u})}
+function ingest(files,label){Q.forEach(q=>q.thumb&&URL.revokeObjectURL(q.thumb));const items=[];
+ for(const it of files){const f=it.file||it,n=f.name||'';if(n.startsWith('.'))continue;const i=n.lastIndexOf('.');if(i<=0)continue;const e=n.slice(i+1).toLowerCase();if(!SUP.has(e))continue;
+  items.push({id:Date.now()+'_'+Math.random().toString(36).slice(2,8),file:f,name:n,size:f.size,mt:f.lastModified,ext:e,thumb:['heic','heif','tiff','tif'].includes(e)?null:URL.createObjectURL(f),rnd:hex(16),ok:Math.random()})}
+ if(!items.length){toast('No supported images found');return}Q=items;g('mode').textContent=`${label} · ${items.length} files`;plan(true);toast(items.length+' images loaded')}
+function diskUI(on){g('diskOpt').classList.toggle('hide',!on);g('bwrite').classList.toggle('hide',!on)}
+async function openDisk(){if(!window.showDirectoryPicker){toast('Editing in place needs Chrome, Edge or Brave. Using ZIP mode.');g('inF').click();return}
+ try{const d=await showDirectoryPicker({mode:'readwrite'}),col=[];DIR=d;for await(const[n,h]of d.entries()){if(h.kind!=='file'||n.startsWith('.'))continue;const i=n.lastIndexOf('.');if(i<=0||!SUP.has(n.slice(i+1).toLowerCase()))continue;col.push({file:await h.getFile()})}
+  if(!col.length){toast('No supported images in '+d.name);return}g('dname').textContent=d.name+'/';diskUI(1);ingest(col,'Folder '+d.name)}catch(e){if(e.name!=='AbortError')toast('Folder error: '+e.message)}}
+function prog(i,n,t){const p=Math.round((i/n)*100);g('pp').classList.remove('hide');g('pt').textContent=t;g('pc').textContent=`${i} / ${n} (${p}%)`;g('pb').style.width=p+'%'}
+async function writeDisk(){if(!DIR||!P.length)return;const sub=document.querySelector('input[name=wt]:checked').value==='sub',del=!sub&&g('delO').checked;g('bwrite').disabled=g('bzip').disabled=true;
+ try{const T=sub?await DIR.getDirectoryHandle('_renamed_jpg',{create:true}):DIR,log=[],sh=['#!/bin/bash','cd "$(dirname "$0")" || exit 1'];
+  for(let i=0;i<P.length;i++){const r=P[i];prog(i+1,P.length,'Writing '+r.nn);const b=await blobOf(r),w=await(await T.getFileHandle(r.nn,{create:true})).createWritable();await w.write(b);await w.close();
+   if(del&&r.name!==r.nn)await DIR.removeEntry(r.name);log.push({from:r.name,to:r.nn,date:r.dd});if(!r.will&&r.name!==r.nn)sh.push(`mv -- '${r.nn.replace(/'/g,"'\\''")}' '${r.name.replace(/'/g,"'\\''")}'`)}
+  const lw=await(await T.getFileHandle('_rename_undo_log.json',{create:true})).createWritable();await lw.write(JSON.stringify({at:new Date().toISOString(),records:log},null,2));await lw.close();
+  if(!sub){const sw=await(await T.getFileHandle('.undo_last_rename.sh',{create:true})).createWritable();await sw.write(sh.join('\n')+'\n');await sw.close()}
+  toast(`Done: ${P.length} images written`)}catch(e){toast('Disk error: '+e.message)}
+ setTimeout(()=>{g('pp').classList.add('hide');g('bwrite').disabled=false;g('bzip').disabled=!P.length},900)}
+async function zipAll(){if(!P.length)return;if(!window.JSZip){toast('ZIP library not loaded (check internet)');return}g('bzip').disabled=true;
+ try{const z=new JSZip();for(let i=0;i<P.length;i++){const r=P[i];prog(i+1,P.length,(r.will?'Converting ':'Adding ')+r.name);z.file(r.nn,await blobOf(r),{date:new Date(g('mtime').checked?r.ep:(r.mt||Date.now()))})}
+  prog(P.length,P.length,'Compressing…');save('renamed_images_'+new Date().toISOString().slice(0,10)+'.zip',await z.generateAsync({type:'blob'}),'application/zip');toast(`ZIP ready with ${P.length} images`)}catch(e){toast('ZIP failed: '+e.message)}
+ setTimeout(()=>{g('pp').classList.add('hide');g('bzip').disabled=!P.length},700)}
+async function demo(){const S=[['223_mountain_sunset.webp','image/webp','#0ea5e9','#f59e0b'],['045_forest_trail.png','image/png','#10b981','#064e3b'],['012_city_night.jpg','image/jpeg','#6366f1','#1e1b4b'],['IMG_2024_05_19_108_beach.webp','image/webp','#06b6d4','#0284c7'],['003_coffee_morning.png','image/png','#d97706','#78350f'],['512_desert_dunes.jpg','image/jpeg','#f97316','#9a3412']],F=[];
+ for(const[n,t,a,b]of S){const c=document.createElement('canvas');c.width=480;c.height=320;const x=c.getContext('2d'),gr=x.createLinearGradient(0,0,480,320);gr.addColorStop(0,a);gr.addColorStop(1,b);x.fillStyle=gr;x.fillRect(0,0,480,320);x.fillStyle='#fff';x.font='bold 30px monospace';x.fillText(n.slice(0,16),24,170);
+  F.push(new File([await new Promise(r=>c.toBlob(r,t,.9))],n,{type:t,lastModified:Date.now()-Math.floor(Math.random()*1e9)}))}DIR=null;diskUI(0);ingest(F,'Demo batch')}
+const drop=g('drop');drop.onclick=e=>{if(!e.target.closest('button'))g('inI').click()};
+g('bdisk').onclick=openDisk;g('bfolder').onclick=()=>g('inF').click();g('bfiles').onclick=()=>g('inI').click();
+[['inF','Folder'],['inI','Files']].forEach(([id,l])=>g(id).onchange=e=>{if(e.target.files.length){DIR=null;diskUI(0);ingest([...e.target.files],l+' (ZIP mode)')}});
+['dragenter','dragover'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.add('act')}));
+['dragleave','drop'].forEach(n=>drop.addEventListener(n,e=>{e.preventDefault();drop.classList.remove('act')}));
+drop.addEventListener('drop',async e=>{const col=[],walk=async en=>{if(en.isFile)col.push(await new Promise(r=>en.file(r)));else if(en.isDirectory){const rd=en.createReader();for(;;){const ch=await new Promise(r=>rd.readEntries(r));if(!ch.length)break;for(const c of ch)await walk(c)}}};
+ const ens=[...(e.dataTransfer.items||[])].map(i=>i.webkitGetAsEntry&&i.webkitGetAsEntry()).filter(Boolean);for(const en of ens)await walk(en);
+ const fs=col.length?col:[...e.dataTransfer.files];if(fs.length){DIR=null;diskUI(0);ingest(fs,'Dropped')}});
+const iso=d=>d.toISOString().slice(0,10);(()=>{const n=new Date();g('d1').value=n.getFullYear()+'-01-01';g('d2').value=iso(n)})();
+g('d1').onchange=g('d2').onchange=()=>plan(true);
+g('reroll').onclick=()=>{Q.forEach(q=>{q.rnd=hex(16);q.ok=Math.random()});plan(true);toast('New dates and random names')};
+$$('[data-rg]').forEach(b=>b.onclick=()=>{const n=new Date(),r=b.dataset.rg;if(r==='ytd'){g('d1').value=n.getFullYear()+'-01-01';g('d2').value=iso(n)}else if(r==='ly'){g('d1').value=(n.getFullYear()-1)+'-01-01';g('d2').value=(n.getFullYear()-1)+'-12-31'}else{g('d1').value=iso(new Date(n-r*864e5));g('d2').value=iso(n)}plan(true)});
+g('sort').onchange=()=>{if(g('sort').value==='rnd')Q.forEach(q=>q.ok=Math.random());plan(false)};g('dir').onchange=()=>plan(false);
+g('cam').onchange=()=>{const c=CAM.find(x=>x[0]===g('cam').value);if(c&&c[2]){g('pat').value=c[2];g('pfx').value=c[3];g('ecase').value=c[4]}plan(false)};
+g('pat').oninput=()=>{g('cam').value='custom';plan(false)};
+$$('.tok').forEach(b=>b.onclick=()=>{const p=g('pat'),s=p.selectionStart??p.value.length,e=p.selectionEnd??s;p.value=p.value.slice(0,s)+b.dataset.t+p.value.slice(e);g('cam').value='custom';p.focus();plan(false)});
+['pfx','seq'].forEach(i=>g(i).oninput=()=>plan(false));['ecase','strip','conv','reenc'].forEach(i=>g(i).onchange=()=>plan(false));
+g('q').oninput=()=>g('qv').textContent=g('q').value+'%';g('find').oninput=draw;
+g('clrq').onclick=()=>{Q.forEach(q=>q.thumb&&URL.revokeObjectURL(q.thumb));Q=[];P=[];EP=[];DIR=null;diskUI(0);g('mode').textContent='Nothing loaded';plan()};
+g('csv').onclick=()=>{if(!P.length)return;save('rename_plan.csv','original,new_name,date\n'+P.map(r=>[r.name,r.nn,r.dd].map(s=>'"'+s.replace(/"/g,'""')+'"').join(',')).join('\n'),'text/csv')};
+g('bwrite').onclick=writeDisk;g('bzip').onclick=zipAll;g('demo').onclick=e=>{e.preventDefault();demo()};
+g('tb').onclick=async e=>{const b=e.target.closest('button[data-id]');if(!b)return;const r=P.find(x=>x.id===b.dataset.id);if(!r)return;b.disabled=true;try{save(r.nn,await blobOf(r),'image/jpeg');toast('Saved '+r.nn)}catch(x){toast(x.message)}b.disabled=false};
+
+/* ================= INIT ================= */
+const last=ls.get('gdlw.last');syncFp();listP();if(last)applySnap(last);else upd(true);plan();ping();
+})();
+</script></body></html>
