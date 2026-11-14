@@ -74,7 +74,7 @@ td{padding:7px 10px;border-top:1px solid #6d808a;vertical-align:middle}
 .empty{padding:50px 16px;text-align:center;color:var(--mute)}
 .err{background:#8c5a55;border-radius:9px;padding:8px 10px;font-size:13px;margin-top:8px}
 .hide{display:none!important}
-.tok{font:12px var(--mono);padding:3px 8px;border-radius:7px;background:var(--deep);color:#fff;border:1px solid var(--line);cursor:pointer}.tok:hover{background:#2f3d44}
+.tok,.tk{font:12px var(--mono);padding:3px 8px;border-radius:7px;background:var(--deep);color:#fff;border:1px solid var(--line);cursor:pointer}.tok:hover,.tk:hover{background:#2f3d44}.tk{font-family:inherit;font-size:13px;padding:5px 11px;border-radius:99px}
 #toast{position:fixed;right:18px;bottom:18px;z-index:60;background:var(--deep);border:1px solid var(--acc);border-left-width:6px;padding:11px 16px;border-radius:10px;max-width:420px;opacity:0;transform:translateY(8px);transition:.25s;pointer-events:none}
 #toast.on{opacity:1;transform:none}
 .modal{position:fixed;inset:0;background:rgba(30,40,46,.72);z-index:50;display:flex;align-items:center;justify-content:center;padding:18px}
@@ -120,11 +120,20 @@ td{padding:7px 10px;border-top:1px solid #6d808a;vertical-align:middle}
    <label class="ck"><input type="checkbox" id="clic" data-s><span>Also put the cookie flag in the command itself</span></label>
   </section>
   <section class="card">
-   <h2>Safety and output</h2><p class="sub">Slower is safer for your account.</p>
+   <div class="hd"><div><h2>File names and folders</h2><p class="sub">Pick a style, then click pieces to add them where your cursor is.</p></div><button class="btn s" id="fnreset">Reset to default</button></div>
+   <label class="l">Filename style</label><select id="fpre"></select>
+   <label class="l">Filename pattern</label><input type="text" class="m" id="fname" data-s placeholder="blank = gallery-dl default">
+   <div class="chips" id="ftoks" style="margin-top:8px"></div>
+   <div class="g2"><div><label class="l">Folder style</label><select id="dpre"></select></div>
+    <div><label class="l">Folder pattern (/ separates levels)</label><input type="text" class="m" id="dirpat" data-s placeholder="blank = instagram/{username}"></div></div>
+   <label class="l">Save into</label><input type="text" class="m" id="dest" data-s placeholder="default: ./gallery-dl">
+   <div class="stat" style="margin-top:12px"><span>Example of a saved file</span><b class="sm" id="fex" style="color:var(--ok);word-break:break-all"></b></div>
+   <div id="fwarn"></div>
+  </section>
+  <section class="card">
+   <h2>Safety and options</h2><p class="sub">Slower is safer for your account.</p>
    <div class="g2"><div><div class="sl"><span>Wait between page requests</span><b id="s1v"></b></div><input type="range" id="s1" data-s min="0" max="10" step=".5" value="2.5"></div>
     <div><div class="sl"><span>Wait between downloads</span><b id="s2v"></b></div><input type="range" id="s2" data-s min="0" max="10" step=".5" value="1.5"></div></div>
-   <div class="g2"><div><label class="l">Save to folder</label><input type="text" class="m" id="dest" data-s placeholder="default: ./gallery-dl"></div>
-    <div><label class="l">Filename pattern</label><input type="text" class="m" id="fname" data-s placeholder="{username}_{post_shortcode}_{num}.{extension}"></div></div>
    <div class="chips" style="margin-top:12px" id="flags"></div>
   </section>
  </div>
@@ -288,13 +297,14 @@ function urls(){const out=[];v('targets').split('\n').map(s=>s.trim()).filter(Bo
 function filt(){const p=[];if(fp!=='all'){const s=$$('.xc:checked').map(c=>c.value);if(s.length&&s.length<ALLX.length)p.push(s.length===1?`extension == '${s[0]}'`:`extension in (${s.map(e=>`'${e}'`).join(', ')})`)}
  const d=v('fdate');if(d){const[y,m,dd]=d.split('-').map(Number);p.push(`date >= datetime(${y}, ${m}, ${dd})`)}return p.join(' and ')}
 function args(){const a=['gallery-dl'];if(k('f-previews'))a.push('-o','previews=true');if(k('f-sim'))a.push('-s');if(k('f-verb'))a.push('-v');if(k('f-meta'))a.push('--write-metadata');if(k('f-nomt'))a.push('--no-mtime');
- if(v('dest'))a.push('-d',v('dest'));if(v('fname'))a.push('-o','filename='+v('fname'));if(k('arch'))a.push('--download-archive','~/.config/gallery-dl/archive.sqlite3');
+ if(v('dest'))a.push('-d',v('dest'));if(v('fname'))a.push('-o','filename='+v('fname'));if(dirArr())a.push('-o','directory='+JSON.stringify(dirArr()));if(k('arch'))a.push('--download-archive','~/.config/gallery-dl/archive.sqlite3');
  const mp=+v('maxp');if(mp>0)a.push('--range','1-'+mp);
  const ak=g('auth').value;if(k('clic')&&ak!=='config_default'){if(ak==='cookies_txt')a.push('--cookies',v('apath')||'~/Downloads/cookies.txt');else a.push('--cookies-from-browser',v('apath')?AP[ak][0]+':'+v('apath'):AP[ak][0])}
  const f=filt();if(f)a.push('--filter',f);return a.concat(urls())}
-const fmt=a=>a.map(x=>/[ ()'"]|https:\/\//.test(x)?`"${x}"`:x).join(' ');
+const fmt=a=>a.map(x=>x.includes('"')&&!x.includes("'")?`'${x}'`:/[ ()'"{}$*?\[]|https:\/\//.test(x)?`"${x}"`:x).join(' ');
+const dirArr=()=>{const d=v('dirpat');return !d?null:d==='-'?[]:d.split('/').map(x=>x.trim()).filter(Boolean)};
 function cfgObj(){const ak=g('auth').value,ap=v('apath'),b={cookies:ak==='cookies_txt'?(ap||'/home/heimdall/Downloads/cookies.txt'):(ap?[AP[ak][0],ap]:[AP[ak][0]]),previews:k('f-previews'),'sleep-request':+g('s1').value,sleep:+g('s2').value};
- const f=filt();if(f)b.filter=f;if(k('arch'))b.archive='~/.config/gallery-dl/archive.sqlite3';const o={extractor:{instagram:b}};if(v('dest'))o.extractor['base-directory']=v('dest');return o}
+ const f=filt();if(f)b.filter=f;if(v('fname'))b.filename=v('fname');if(dirArr())b.directory=dirArr();if(k('arch'))b.archive='~/.config/gallery-dl/archive.sqlite3';const o={extractor:{instagram:b}};if(v('dest'))o.extractor['base-directory']=v('dest');return o}
 const DLS=()=>$$('[data-s]');
 function snap(){const o={_fp:fp};DLS().forEach(e=>o[e.id]=e.type==='checkbox'?e.checked:e.value);return o}
 function applySnap(o){DLS().forEach(e=>{if(e.id in o){if(e.type==='checkbox')e.checked=o[e.id];else e.value=o[e.id]}});fp=o._fp||'custom';syncFp();upd(true)}
@@ -303,12 +313,38 @@ function upd(noSave){g('s1v').textContent=g('s1').value+'s';g('s2v').textContent
  const c=JSON.stringify(cfgObj(),null,4);g('cfg').textContent=c;g('inst').textContent=`mkdir -p ~/.config/gallery-dl && cat << 'EOF' > ~/.config/gallery-dl/config.json\n${c}\nEOF`;
  const f=filt(),sel=g('auth');
  g('sum').innerHTML=`<li>Login: <b>${esc(sel.options[sel.selectedIndex].text)}</b></li><li>Filter: <b>${esc(f||'none, all media')}</b></li><li>Pauses: <b>${g('s1').value}s per page, ${g('s2').value}s per file</b></li>`;
- if(noSave!==true)ls.set('gdlw.last',snap())}
+ fnUI();if(noSave!==true)ls.set('gdlw.last',snap())}
 g('auth').onchange=()=>{const p=AP[g('auth').value];g('apath').value=p[1];g('clic').checked=!!p[2];upd()};
 DLS().forEach(e=>{e.addEventListener('input',()=>upd());e.addEventListener('change',()=>upd())});
 g('sample').onclick=()=>{g('targets').value='pprinfb\ndivyadayanand__';upd()};g('clr').onclick=()=>{g('targets').value='';upd()};
 g('dlsh').onclick=()=>{save('run-gallery-dl.sh',`#!/usr/bin/env bash\nset -e\n${fmt(args())}\n`,'text/x-shellscript')};
 g('dlcfg').onclick=()=>save('config.json',g('cfg').textContent,'application/json');
+/* filename + folder builder */
+const FP=[['','Default (original name)'],['{username}_{post_shortcode}_{num}.{extension}','Profile, post, number'],['{date:%Y-%m-%d}_{username}_{post_shortcode}_{num}.{extension}','Date first (sorts by time)'],['{date:%Y%m%d_%H%M%S}_{username}_{num}.{extension}','Date and time'],['{username}_{post_id}_{num:02}.{extension}','Profile, post id, 01 02 03'],['{post_shortcode}_{num}.{extension}','Short: post code and number']];
+const DP=[['','Default: instagram / username'],['{username}','Just the username'],['instagram/{username}/{date:%Y}','Username, then year'],['{username}/{date:%Y-%m}','Username, then year-month'],['-','No subfolders (flat)']];
+const FTK=[['username','{username}'],['full name','{fullname}'],['post code','{post_shortcode}'],['post id','{post_id}'],['number','{num:02}'],['total in post','{count}'],['date','{date:%Y-%m-%d}'],['date + time','{date:%Y%m%d_%H%M%S}'],['original name','{filename}'],['file type','{extension}'],['size','{width}x{height}']];
+g('fpre').innerHTML=FP.map((x,i)=>`<option value="${i}">${esc(x[1])}</option>`).join('')+'<option value="c">Custom</option>';
+g('dpre').innerHTML=DP.map((x,i)=>`<option value="${i}">${esc(x[1])}</option>`).join('')+'<option value="c">Custom</option>';
+g('ftoks').innerHTML=FTK.map(t=>`<button type="button" class="tk btn s" data-t="${esc(t[1])}" title="${esc(t[1])}">${t[0]}</button>`).join('');
+let lastF=g('fname');['fname','dirpat'].forEach(i=>g(i).addEventListener('focus',()=>lastF=g(i)));
+$$('.tk').forEach(b=>b.onclick=()=>{const p=lastF,a=p.selectionStart??p.value.length,e=p.selectionEnd??a;p.value=p.value.slice(0,a)+b.dataset.t+p.value.slice(e);p.focus();p.selectionStart=p.selectionEnd=a+b.dataset.t.length;upd()});
+g('fpre').onchange=()=>{if(g('fpre').value!=='c'){g('fname').value=FP[g('fpre').value][0];upd()}};
+g('dpre').onchange=()=>{if(g('dpre').value!=='c'){g('dirpat').value=DP[g('dpre').value][0];upd()}};
+g('fnreset').onclick=()=>{g('fname').value='';g('dirpat').value='';upd();toast('Names and folders reset')};
+const FT={username:'pprinfb',fullname:'Pri Pri',post_shortcode:'CxAbC12dEf',post_id:'3201847562',num:1,count:3,filename:'412839_n',extension:'jpg',width:1080,height:1350,date:new Date(2026,10,2,14,28,5)};
+const z2=n=>String(n).padStart(2,'0');
+const sf=(d,f)=>f.replace(/%([YmdHMS])/g,(m,c)=>({Y:d.getFullYear(),m:z2(d.getMonth()+1),d:z2(d.getDate()),H:z2(d.getHours()),M:z2(d.getMinutes()),S:z2(d.getSeconds())}[c]));
+const fx=p=>p.replace(/\{(\w+)(?::([^}]*))?\}/g,(m,n,s)=>{if(!(n in FT))return m;const x=FT[n];if(x instanceof Date)return sf(x,s||'%Y-%m-%d %H:%M:%S');if(s&&/^0\d$/.test(s))return String(x).padStart(+s[1],'0');return x});
+function fnUI(){const p=v('fname'),d=dirArr(),w=[];
+ const fi=FP.findIndex(x=>x[0]===p),di=FP&&DP.findIndex(x=>x[0]===v('dirpat'));g('fpre').value=fi>=0?fi:'c';g('dpre').value=di>=0?di:'c';
+ if(p){const un=[...new Set([...p.matchAll(/\{(\w+)/g)].map(m=>m[1]).filter(n=>!(n in FT)))];
+  if(un.length)w.push('Unknown field '+un.map(x=>'{'+x+'}').join(', ')+': it may come out empty.');
+  if(!/\{extension\}/.test(p))w.push('Add {extension}, or files will have no file type.');
+  if(!/\{(num|filename|media_id)/.test(p))w.push('Add a number piece so photos in the same post do not overwrite each other.');
+  if(/[\/\\]/.test(p))w.push('Use the folder pattern for sub-folders, not / in the filename.')}
+ const dir=d===null?['instagram',FT.username]:d.map(fx),base=(v('dest')||'./gallery-dl').replace(/\/+$/,'');
+ g('fex').textContent=[base,...dir,fx(p||'{filename}.{extension}')].join('/');
+ g('fwarn').innerHTML=w.map(x=>`<div class="err">${esc(x)}</div>`).join('')}
 /* saved setups */
 function listP(){const p=ls.get('gdlw.presets')||{};g('pset').innerHTML='<option value="">Last used</option>'+Object.keys(p).map(n=>`<option>${esc(n)}</option>`).join('')}
 g('psave').onclick=()=>{const n=(prompt('Name this setup')||'').trim();if(!n)return;const p=ls.get('gdlw.presets')||{};p[n]=snap();ls.set('gdlw.presets',p);listP();g('pset').value=n;toast('Saved "'+n+'"')};
